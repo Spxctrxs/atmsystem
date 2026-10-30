@@ -1,6 +1,6 @@
 # ATM Management System
 
-A small, menu-driven ATM program written in C. It lets you create accounts, sign in with an account number and PIN, check balances, deposit and withdraw money, transfer funds between accounts, and view transaction history.
+A small, menu-driven ATM program written in C. It lets you create accounts, sign in with an account number and PIN, check balances, deposit and withdraw money, transfer funds between accounts, and view transaction history. All amounts are displayed in Kenyan shillings (Ksh).
 
 > **For learning and demonstration only.** This program is not suitable for real banking or for storing real account information. PINs are obfuscated with a simple XOR operation, not securely encrypted. Account data is stored locally without protection.
 
@@ -44,7 +44,8 @@ atmsystem.exe
    - `3` — Withdraw a positive amount, up to your available balance.
    - `4` — Transfer a positive amount to another account in this program. You need the recipient's account number.
    - `5` — View transaction records for your account.
-   - `6` — Log out and return to the main menu.
+   - `6` — Change your PIN. Enter your current PIN, then enter and confirm a different 4-digit PIN.
+   - `7` — Log out and return to the main menu.
 5. From the main menu, enter `3` to exit.
 
 The program assigns account numbers starting at `1001`. The demo supports up to 100 accounts.

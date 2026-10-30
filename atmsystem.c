@@ -26,11 +26,13 @@ void deposit(int accNum);
 void withdraw(int accNum);
 void transfer(int accNum);
 void viewTransactionHistory(int accNum);
+void changePIN(int accNum);
+void clearInputLine(void);
 void logTransaction(int accNum, const char *type, double amount);
 int encryptDecryptPIN(int pin);
 int getAccountIndex(int accNum, Account *accounts, int count);
 int loadAccounts(Account *accounts);
-void saveAccounts(Account *accounts, int count);
+int saveAccounts(Account *accounts, int count);
 
 int main() {
     int choice, accNum, pin;
@@ -80,6 +82,12 @@ int encryptDecryptPIN(int pin) {
     return pin ^ XOR_KEY;
 }
 
+void clearInputLine(void) {
+    int ch;
+    while ((ch = getchar()) != '\n' && ch != EOF) {
+    }
+}
+
 // Helper to find index of account in array
 int getAccountIndex(int accNum, Account *accounts, int count) {
     for (int i = 0; i < count; i++) {
@@ -104,14 +112,22 @@ int loadAccounts(Account *accounts) {
 }
 
 // Saves accounts array back to binary file. Basically this function ni ya kusave the account data to a binary file.
-void saveAccounts(Account *accounts, int count) {
+int saveAccounts(Account *accounts, int count) {
     FILE *file = fopen(ACCOUNTS_FILE, "wb");
     if (!file) {
         printf("Error: Unable to save account data!\n");
-        return;
+        return 0;
     }
-    fwrite(accounts, sizeof(Account), count, file);
-    fclose(file);
+    if (fwrite(accounts, sizeof(Account), count, file) != (size_t)count) {
+        printf("Error: Unable to save account data!\n");
+        fclose(file);
+        return 0;
+    }
+    if (fclose(file) != 0) {
+        printf("Error: Unable to save account data!\n");
+        return 0;
+    }
+    return 1;
 }
 
 // Appends transaction logs to a text file. Sikudai kutengeneza binary log ingine.
@@ -123,7 +139,7 @@ void logTransaction(int accNum, const char *type, double amount) {
     char *timestamp = ctime(&now);
     timestamp[strcspn(timestamp, "\n")] = 0; // Remove trailing newline
 
-    fprintf(file, "[%s] Acc: %d | Type: %s | Amount: $%.2f\n", timestamp, accNum, type, amount);
+    fprintf(file, "[%s] Acc: %d | Type: %s | Amount: Ksh %.2f\n", timestamp, accNum, type, amount);
     fclose(file);
 }
 
@@ -154,11 +170,13 @@ void createAccount() {
     scanf("%d", &pin);
     newAcc.pin = encryptDecryptPIN(pin); // Store encrypted PIN
 
-    printf("Initial Deposit Amount ($): ");
+    printf("Initial Deposit Amount (Ksh): ");
     scanf("%lf", &newAcc.balance);
 
     accounts[count] = newAcc;
-    saveAccounts(accounts, count + 1);
+    if (!saveAccounts(accounts, count + 1)) {
+        return;
+    }
 
     logTransaction(newAcc.accountNumber, "ACCOUNT_CREATED", newAcc.balance);
     printf("\nAccount created successfully!\n");
@@ -191,7 +209,8 @@ void mainMenu(int accNum) {
         printf("3. Withdraw Money\n");
         printf("4. Transfer Money\n");
         printf("5. View Transaction History\n");
-        printf("6. Logout\n");
+        printf("6. Change PIN\n");
+        printf("7. Logout\n");
         printf("Enter choice: ");
         scanf("%d", &choice);
 
@@ -201,7 +220,8 @@ void mainMenu(int accNum) {
             case 3: withdraw(accNum); break;
             case 4: transfer(accNum); break;
             case 5: viewTransactionHistory(accNum); break;
-            case 6: 
+            case 6: changePIN(accNum); break;
+            case 7:
                 printf("Logging out...\n");
                 return;
             default:
@@ -218,7 +238,7 @@ void checkBalance(int accNum) {
 
     if (idx != -1) {
         printf("\nAccount Holder: %s\n", accounts[idx].name);
-        printf("Current Balance: $%.2f\n", accounts[idx].balance);
+        printf("Current Balance: Ksh %.2f\n", accounts[idx].balance);
     }
 }
 
@@ -231,7 +251,7 @@ void deposit(int accNum) {
 
     if (idx != -1) {
         double amount;
-        printf("Enter amount to deposit ($): ");
+        printf("Enter amount to deposit (Ksh): ");
         scanf("%lf", &amount);
 
         if (amount <= 0) {
@@ -240,9 +260,11 @@ void deposit(int accNum) {
         }
 
         accounts[idx].balance += amount;
-        saveAccounts(accounts, count);
+        if (!saveAccounts(accounts, count)) {
+            return;
+        }
         logTransaction(accNum, "DEPOSIT", amount);
-        printf("Successfully deposited $%.2f. New Balance: $%.2f\n", amount, accounts[idx].balance);
+        printf("Successfully deposited Ksh %.2f. New Balance: Ksh %.2f\n", amount, accounts[idx].balance);
     }
 }
 
@@ -254,7 +276,7 @@ void withdraw(int accNum) {
 
     if (idx != -1) {
         double amount;
-        printf("Enter amount to withdraw ($): ");
+        printf("Enter amount to withdraw (Ksh): ");
         scanf("%lf", &amount);
 
         if (amount <= 0) {
@@ -262,14 +284,16 @@ void withdraw(int accNum) {
             return;
         }
         if (amount > accounts[idx].balance) {
-            printf("Insufficient funds! Current balance: $%.2f\n", accounts[idx].balance);
+            printf("Insufficient funds! Current balance: Ksh %.2f\n", accounts[idx].balance);
             return;
         }
 
         accounts[idx].balance -= amount;
-        saveAccounts(accounts, count);
+        if (!saveAccounts(accounts, count)) {
+            return;
+        }
         logTransaction(accNum, "WITHDRAWAL", amount);
-        printf("Successfully withdrew $%.2f. Remaining Balance: $%.2f\n", amount, accounts[idx].balance);
+        printf("Successfully withdrew Ksh %.2f. Remaining Balance: Ksh %.2f\n", amount, accounts[idx].balance);
     }
 }
 
@@ -298,7 +322,7 @@ void transfer(int accNum) {
         return;
     }
 
-    printf("Enter amount to transfer ($): ");
+    printf("Enter amount to transfer (Ksh): ");
     scanf("%lf", &amount);
 
     if (amount <= 0) {
@@ -314,12 +338,67 @@ void transfer(int accNum) {
     accounts[senderIdx].balance -= amount;
     accounts[recipientIdx].balance += amount;
 
-    saveAccounts(accounts, count);
+    if (!saveAccounts(accounts, count)) {
+        return;
+    }
 
     logTransaction(accNum, "TRANSFER_OUT", amount);
     logTransaction(recipientAcc, "TRANSFER_IN", amount);
 
-    printf("Successfully transferred $%.2f to Account %d.\n", amount, recipientAcc);
+    printf("Successfully transferred Ksh %.2f to Account %d.\n", amount, recipientAcc);
+}
+
+// Lets an authenticated account holder replace their PIN after verifying the current PIN.
+void changePIN(int accNum) {
+    Account accounts[MAX_ACCOUNTS];
+    int count = loadAccounts(accounts);
+    int idx = getAccountIndex(accNum, accounts, count);
+
+    if (idx == -1) {
+        printf("Error: Account not found.\n");
+        return;
+    }
+
+    int currentPIN, newPIN, confirmedPIN;
+    printf("Enter current 4-digit PIN: ");
+    int inputResult = scanf("%d", &currentPIN);
+    clearInputLine();
+    if (inputResult != 1) {
+        printf("Invalid PIN input.\n");
+        return;
+    }
+    if (encryptDecryptPIN(accounts[idx].pin) != currentPIN) {
+        printf("Incorrect current PIN.\n");
+        return;
+    }
+
+    printf("Enter new 4-digit PIN: ");
+    inputResult = scanf("%d", &newPIN);
+    clearInputLine();
+    if (inputResult != 1 || newPIN < 1000 || newPIN > 9999) {
+        printf("PIN must be exactly 4 digits.\n");
+        return;
+    }
+
+    printf("Confirm new 4-digit PIN: ");
+    inputResult = scanf("%d", &confirmedPIN);
+    clearInputLine();
+    if (inputResult != 1 || confirmedPIN != newPIN) {
+        printf("PIN confirmation does not match.\n");
+        return;
+    }
+    if (newPIN == currentPIN) {
+        printf("The new PIN must be different from the current PIN.\n");
+        return;
+    }
+
+    accounts[idx].pin = encryptDecryptPIN(newPIN);
+    if (!saveAccounts(accounts, count)) {
+        return;
+    }
+
+    logTransaction(accNum, "PIN_CHANGE", 0.0);
+    printf("PIN changed successfully.\n");
 }
 
 // Displays past transaction logs for the logged-in user
