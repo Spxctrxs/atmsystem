@@ -4,6 +4,16 @@ A small, menu-driven ATM program written in C. It lets you create accounts, sign
 
 > **For learning and demonstration only.** This program is not suitable for real banking or for storing real account information. PINs are obfuscated with a simple XOR operation, not securely encrypted. Account data is stored locally without protection.
 
+## License and attribution
+
+This project is available under the custom terms in [LICENSE](./LICENSE). Copies,
+ports, adaptations, recreations, and derivative works based on this project must
+credit the source as **"Based on ATM Management System by Spxctrxs"** and link to
+the [original repository](https://github.com/Spxctrxs/atmsystem). Independently
+created software that does not derive from this project is not covered by this
+attribution requirement. This is a custom license, not a standard open-source
+license.
+
 ## Requirements
 
 - A C compiler, such as GCC (MinGW-w64 on Windows) or Microsoft Visual C.
